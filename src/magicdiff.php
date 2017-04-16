@@ -1,4 +1,5 @@
 <?php
+namespace vielhuber\magicdiff;
 class magicdiff
 {
     // column information

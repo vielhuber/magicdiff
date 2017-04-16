@@ -1,0 +1,13 @@
+{
+    "name": "vielhuber/magicdiff",
+    "description": "Generates a sql diff between two given database states.",
+    "require": {
+      "php": ">=5.6"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+	        "vielhuber\\magicdiff\\": "src/"
+    	}
+    }
+}
