@@ -1,4 +1,4 @@
-# ✨ magicdiff ✨
+# ☕ magicdiff ☕
 
 magicdiff generates automagically sql diffs for a database between two given states.
 
