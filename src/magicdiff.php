@@ -19,7 +19,7 @@ class magicdiff
             //magicdiff::output('created folder /.magicdiff/...');
         }
         else {
-            echo magicdiff::output('folder /.magicdiff/ already present...');
+            //magicdiff::output('folder /.magicdiff/ already present...');
         }
     }
 
@@ -29,7 +29,7 @@ class magicdiff
             //magicdiff::output('file /.magicdiff/config.json created. now edit config.json...');
         }
 		else {
-            magicdiff::output('file /.magicdiff/config.json already exists...');
+            //magicdiff::output('file /.magicdiff/config.json already exists...');
         }
     }
 
@@ -38,6 +38,8 @@ class magicdiff
     }
 
     public static function checkConfig() {
+        // prefer kiwi config
+        if( file_exists(magicdiff::path().'/../.kiwi/config.json') ) { return true; }
         return file_exists(magicdiff::path().'/config.json');
     }
 
@@ -96,8 +98,6 @@ class magicdiff
         magicdiff::command(magicdiff::conf('database.export').' --no-create-info --skip-add-locks --skip-comments --extended-insert=false --disable-keys --quick -h '.magicdiff::conf('database.host').' --port '.magicdiff::conf('database.port').' -u '.magicdiff::conf('database.username').' -p"'.magicdiff::conf('database.password').'" '.magicdiff::conf('database.database').' '.$table.' > '.magicdiff::path().'/_'.$filename.'_'.$table.'_data.sql');
     }
 
-
-
     public static function getTables($with_ignored = true) {
         $tables = [];
         $ignored = magicdiff::conf('ignore');
@@ -118,7 +118,7 @@ class magicdiff
     /* diff */
 
     public static function diff() {
-        $diff = [];
+        $diff = [];       
         magicdiff::checkSetup();
         magicdiff::export('current');
         $tables = magicdiff::getTables();
@@ -800,7 +800,8 @@ class magicdiff
     }
 
 
-    /* helper functions */
+    /* helpers */
+
     public static function path() {
         $path = getcwd();
         if( strpos($path,'\src') !== false ) { $path = str_replace('\src','',$path); }
