@@ -14,13 +14,23 @@ class magicdiff
     }
 
     public static function setupDir() {
-        if( !magicdiff::checkDir() ) { mkdir(magicdiff::path()); magicdiff::output('created folder /.magicdiff/...'); }
-        else { echo magicdiff::output('folder /.magicdiff/ already present...'); }
+        if( !magicdiff::checkDir() ) {
+            mkdir(magicdiff::path());
+            //magicdiff::output('created folder /.magicdiff/...');
+        }
+        else {
+            echo magicdiff::output('folder /.magicdiff/ already present...');
+        }
     }
 
     public static function setupConfig() {
-    	if( !magicdiff::checkConfig() ) { file_put_contents( magicdiff::path().'/config.json', magicdiff::getConfigBoilerplate() ); magicdiff::output('file /.magicdiff/config.json created. now edit config.json...'); }
-		else { magicdiff::output('file /.magicdiff/config.json already exists...'); }
+    	if( !magicdiff::checkConfig() ) {
+            file_put_contents( magicdiff::path().'/config.json', magicdiff::getConfigBoilerplate() );
+            //magicdiff::output('file /.magicdiff/config.json created. now edit config.json...');
+        }
+		else {
+            magicdiff::output('file /.magicdiff/config.json already exists...');
+        }
     }
 
     public static function checkDir() {
@@ -41,10 +51,11 @@ class magicdiff
             "database": {
                 "host": "localhost",
                 "port": "3306",
-                "database": "_test1",
+                "database": "_test",
                 "username": "root",
                 "password": "root",
-                "export": "C:\MAMP\bin\mysql\bin\mysqldump.exe"
+                "export": "C:\MAMP\bin\mysql\bin\mysqldump.exe",
+                "import": "C:\MAMP\bin\mysql\bin\mysql.exe"
             },
             "ignore": [
                 "s_table1",
@@ -84,6 +95,8 @@ class magicdiff
     public static function exportData($filename, $table) {
         magicdiff::command(magicdiff::conf('database.export').' --no-create-info --skip-add-locks --skip-comments --extended-insert=false --disable-keys --quick -h '.magicdiff::conf('database.host').' --port '.magicdiff::conf('database.port').' -u '.magicdiff::conf('database.username').' -p"'.magicdiff::conf('database.password').'" '.magicdiff::conf('database.database').' '.$table.' > '.magicdiff::path().'/_'.$filename.'_'.$table.'_data.sql');
     }
+
+
 
     public static function getTables($with_ignored = true) {
         $tables = [];
@@ -186,8 +199,9 @@ class magicdiff
     }
 
     public static function diffCompareReferenceWithCurrent($table) {
-        $patch = [];
+        $patch = ['schema' => '', 'data' => ''];
         foreach(['schema','data'] as $type) {
+            if( md5_file(magicdiff::path().'/_reference_'.$table.'_'.$type.'.sql') == md5_file(magicdiff::path().'/_current_'.$table.'_'.$type.'.sql') ) { continue; }
             passthru('diff --speed-large-files --suppress-common-lines '.magicdiff::path().'/_reference_'.$table.'_'.$type.'.sql '.magicdiff::path().'/_current_'.$table.'_'.$type.'.sql > '.magicdiff::path().'/diff_'.$type.'.result');
             $patch[$type] = file_get_contents(magicdiff::path().'/diff_'.$type.'.result');
             unlink(magicdiff::path().'/diff_'.$type.'.result');
@@ -846,6 +860,21 @@ class magicdiff
 		$return = shell_exec($command);
 		return $return;
 	}
+
+    public static function reset() {
+        array_map('unlink', glob(magicdiff::path().'/*'));
+        rmdir(magicdiff::path());
+    }
+
+    public static function lb($message = '') {
+        if(!isset($GLOBALS['performance'])) { $GLOBALS['performance'] = []; }
+        $GLOBALS['performance'][] = ['time' => microtime(true), 'message' => $message];
+    }
+    public static function le() {
+        echo 'script '.$GLOBALS['performance'][count($GLOBALS['performance'])-1]['message'].' execution time: '.number_format((microtime(true)-$GLOBALS['performance'][count($GLOBALS['performance'])-1]['time']),5). ' seconds'.PHP_EOL;
+        unset($GLOBALS['performance'][count($GLOBALS['performance'])-1]);
+        $GLOBALS['performance'] = array_values($GLOBALS['performance']);
+    }
 
 }
 
