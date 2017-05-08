@@ -14,6 +14,7 @@ magicdiff generates automagically sql diffs for a database between two given sta
 * returns (separate) diffs and patch files
 * can ignore certain tables 
 * takes care of (primary) keys and all kinds or altering tables
+* zero dependencies
 
 ## Disclaimer
 
