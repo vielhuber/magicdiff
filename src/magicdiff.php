@@ -830,7 +830,9 @@ class magicdiff
 	}
 
     public static function getConfig() {
-        $config = file_get_contents(magicdiff::path().'/config.json');
+        if( file_exists(magicdiff::path().'/config.json') ) {
+            $config = file_get_contents(magicdiff::path().'/config.json');
+        }
         // if kiwi config is available, chose this configuration instead
         if( file_exists(magicdiff::path().'/../.kiwi/config.json') ) {
             $config = file_get_contents(magicdiff::path().'/../.kiwi/config.json');
