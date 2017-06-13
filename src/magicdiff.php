@@ -73,7 +73,7 @@ class magicdiff
 
     public static function init() {
         magicdiff::checkSetup();
-        magicdiff::exportWithIgnored('reference');	
+        magicdiff::exportWithIgnored('reference');
     }
 
     public static function exportWithIgnored($filename) {
@@ -805,7 +805,13 @@ class magicdiff
     public static function path() {
         $path = getcwd();
         if( strpos($path,'\src') !== false ) { $path = str_replace('\src','',$path); }
-        $path .= '/.magicdiff/';
+        // if kiwi config is available, chose this configuration instead
+        if( file_exists($path.'/.kiwi/config.json') ) {
+         	$path .= '/.kiwi/';   
+        }
+        else {
+	        $path .= '/.magicdiff/';
+    	}
         return $path;
 	}
 
