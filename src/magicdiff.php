@@ -8,13 +8,16 @@ class magicdiff
 
     /* setup */
 
-    public static function setup() {
+    public static function setup()
+    {
         magicdiff::setupDir();
         magicdiff::setupConfig();
     }
 
-    public static function setupDir() {
-        if( !magicdiff::checkDir() ) {
+    public static function setupDir()
+    {
+        if( !magicdiff::checkDir() )
+        {
             mkdir(magicdiff::path());
             //magicdiff::output('created folder /.magicdiff/...');
         }
@@ -23,31 +26,38 @@ class magicdiff
         }
     }
 
-    public static function setupConfig() {
-    	if( !magicdiff::checkConfig() ) {
+    public static function setupConfig()
+    {
+    	if( !magicdiff::checkConfig() )
+        {
             file_put_contents( magicdiff::path().'/config.json', magicdiff::getConfigBoilerplate() );
             //magicdiff::output('file /.magicdiff/config.json created. now edit config.json...');
         }
-		else {
+		else
+        {
             //magicdiff::output('file /.magicdiff/config.json already exists...');
         }
     }
 
-    public static function checkDir() {
+    public static function checkDir()
+    {
         return is_dir(magicdiff::path());
     }
 
-    public static function checkConfig() {
+    public static function checkConfig()
+    {
         // prefer kiwi config
         if( file_exists(magicdiff::path().'/../.kiwi/config.json') ) { return true; }
         return file_exists(magicdiff::path().'/config.json');
     }
 
-    public static function checkSetup() {
+    public static function checkSetup()
+    {
         if( !magicdiff::checkDir() || !magicdiff::checkConfig() ) { magicdiff::outputAndStop('do setup first...'); }
     }
 
-	public static function getConfigBoilerplate() {
+	public static function getConfigBoilerplate()
+    {
 		$config = '{
             "engine": "mysql",
             "database": {
@@ -71,42 +81,52 @@ class magicdiff
 
     /* init */
 
-    public static function init() {
+    public static function init()
+    {
         magicdiff::checkSetup();
         magicdiff::exportWithIgnored('reference');
     }
 
-    public static function exportWithIgnored($filename) {
+    public static function exportWithIgnored($filename)
+    {
         magicdiff::export($filename, true);
     }
 
-    public static function export($filename, $with_ignored = false) {
+    public static function export($filename, $with_ignored = false)
+    {
         $tables = magicdiff::getTables($with_ignored);
-        if(!empty($tables)) {
-			foreach($tables as $tables__value) {
+        if(!empty($tables))
+        {
+			foreach($tables as $tables__value)
+            {
                 magicdiff::exportSchema($filename, $tables__value);
                 magicdiff::exportData($filename, $tables__value);
 			}
 		}
     }
 
-    public static function exportSchema($filename, $table) {
+    public static function exportSchema($filename, $table)
+    {
         magicdiff::command(magicdiff::conf('database.export').' --no-data --skip-add-drop-table --skip-add-locks --skip-comments --extended-insert=false --disable-keys --quick -h '.magicdiff::conf('database.host').' --port '.magicdiff::conf('database.port').' -u '.magicdiff::conf('database.username').' -p"'.magicdiff::conf('database.password').'" '.magicdiff::conf('database.database').' '.$table.' > '.magicdiff::path().'/_'.$filename.'_'.$table.'_schema.sql');
     }
 
-    public static function exportData($filename, $table) {
+    public static function exportData($filename, $table)
+    {
         magicdiff::command(magicdiff::conf('database.export').' --no-create-info --skip-add-locks --skip-comments --extended-insert=false --disable-keys --quick -h '.magicdiff::conf('database.host').' --port '.magicdiff::conf('database.port').' -u '.magicdiff::conf('database.username').' -p"'.magicdiff::conf('database.password').'" '.magicdiff::conf('database.database').' '.$table.' > '.magicdiff::path().'/_'.$filename.'_'.$table.'_data.sql');
     }
 
-    public static function getTables($with_ignored = true) {
+    public static function getTables($with_ignored = true)
+    {
         $tables = [];
         $ignored = magicdiff::conf('ignore');
         $db = magicdiff::sql();
         $statement = $db->prepare('SHOW TABLES');
         $statement->execute();
         $data = $statement->fetchAll(PDO::FETCH_ASSOC);
-        if(!empty($data)) {
-            foreach($data as $data__value) {
+        if(!empty($data))
+        {
+            foreach($data as $data__value)
+            {
                 $table = $data__value[ array_keys($data__value)[0] ];
                 if( $with_ignored === false && in_array($table,$ignored) ) { continue; }
                 $tables[] = $table;
@@ -117,13 +137,16 @@ class magicdiff
 
     /* diff */
 
-    public static function diff() {
+    public static function diff()
+    {
         $diff = [];       
         magicdiff::checkSetup();
         magicdiff::export('current');
         $tables = magicdiff::getTables();
-        if(!empty($tables)) {
-            foreach($tables as $tables__value) {
+        if(!empty($tables))
+        {
+            foreach($tables as $tables__value)
+            {
                 $diff_table = magicdiff::diffTable($tables__value);
                 if(magicdiff::checkDiff($diff_table)) { $diff[] = $diff_table; }  
             }
@@ -131,7 +154,8 @@ class magicdiff
         return $diff;
     }
 
-    public static function diffTable($table) {
+    public static function diffTable($table)
+    {
         $diff = magicdiff::diffReturnBoilerplate($table);
         magicdiff::diffCreateEmptyFiles($table);
         magicdiff::diffFormatCommandPerLineSchema($table);
@@ -151,11 +175,13 @@ class magicdiff
         return $diff;
     }
 
-    public static function checkDiff($diff) {
+    public static function checkDiff($diff)
+    {
         return ($diff['diff']['all'] !== null && $diff['diff']['all'] != '');
     }
 
-    public static function diffReturnBoilerplate($table) {
+    public static function diffReturnBoilerplate($table)
+    {
         return [
             'table' => $table,
             'patch' => [
@@ -171,17 +197,22 @@ class magicdiff
         ];
     }
 
-    public static function diffCreateEmptyFiles($table) {
-        foreach(['_reference_'.$table.'_schema','_reference_'.$table.'_data','_current_'.$table.'_schema','_current_'.$table.'_data'] as $file) {
-            if( !file_exists(magicdiff::path().'/'.$file.'.sql') ) {
+    public static function diffCreateEmptyFiles($table)
+    {
+        foreach(['_reference_'.$table.'_schema','_reference_'.$table.'_data','_current_'.$table.'_schema','_current_'.$table.'_data'] as $file)
+        {
+            if( !file_exists(magicdiff::path().'/'.$file.'.sql') )
+            {
                 touch(magicdiff::path().'/'.$file.'.sql');
             }
         }
     }
 
-    public static function diffFormatCommandPerLineSchema($table) {
+    public static function diffFormatCommandPerLineSchema($table)
+    {
         $unique_delimiter = md5(uniqid(mt_rand(), true));
-        foreach([magicdiff::path().'/_reference_'.$table.'_schema.sql',magicdiff::path().'/_current_'.$table.'_schema.sql'] as $file_line) {
+        foreach([magicdiff::path().'/_reference_'.$table.'_schema.sql',magicdiff::path().'/_current_'.$table.'_schema.sql'] as $file_line)
+        {
             file_put_contents($file_line,str_replace("\r\n",$unique_delimiter,file_get_contents($file_line)));
             file_put_contents($file_line,str_replace("\r",$unique_delimiter,file_get_contents($file_line)));       
             file_put_contents($file_line,str_replace("\n",$unique_delimiter,file_get_contents($file_line)));
@@ -190,17 +221,21 @@ class magicdiff
         }
     }
 
-    public static function diffFetchColumnInformation($table) {
-        foreach(explode("\n",file_get_contents(magicdiff::path().'/_current_'.$table.'_schema.sql')) as $create_statement) {
+    public static function diffFetchColumnInformation($table)
+    {
+        foreach(explode("\n",file_get_contents(magicdiff::path().'/_current_'.$table.'_schema.sql')) as $create_statement)
+        {
             $parse_line = magicdiff::parseLine($create_statement);
             if( $parse_line === null || $parse_line['type'] != 'create' ) { continue; }
             magicdiff::$data['column_information'][$parse_line['table']] = $parse_line;
         }
     }
 
-    public static function diffCompareReferenceWithCurrent($table) {
+    public static function diffCompareReferenceWithCurrent($table)
+    {
         $patch = ['schema' => '', 'data' => ''];
-        foreach(['schema','data'] as $type) {
+        foreach(['schema','data'] as $type)
+        {
             if( md5_file(magicdiff::path().'/_reference_'.$table.'_'.$type.'.sql') == md5_file(magicdiff::path().'/_current_'.$table.'_'.$type.'.sql') ) { continue; }
             passthru('diff --speed-large-files --suppress-common-lines '.magicdiff::path().'/_reference_'.$table.'_'.$type.'.sql '.magicdiff::path().'/_current_'.$table.'_'.$type.'.sql > '.magicdiff::path().'/diff_'.$type.'.result');
             $patch[$type] = file_get_contents(magicdiff::path().'/diff_'.$type.'.result');
@@ -209,7 +244,8 @@ class magicdiff
         return $patch;
     }
 
-    public static function diffPatchAll($patch_schema, $patch_data) {
+    public static function diffPatchAll($patch_schema, $patch_data)
+    {
         $patch = $patch_schema."\n".$patch_data;
         // fix line endings
         $patch = str_replace("\r\n","\n",$patch);
@@ -218,10 +254,12 @@ class magicdiff
         return $patch;
     }
 
-    public static function diffSplitAddedDeletedLines($patch) {
+    public static function diffSplitAddedDeletedLines($patch)
+    {
         magicdiff::$data['diff_added'] = [];
         magicdiff::$data['diff_deleted'] = [];
-        foreach($patch as $diff__value) {
+        foreach($patch as $diff__value)
+        {
             // don't include empty lines
             if($diff__value == '' || trim($diff__value) == '') { continue; }
             // don't include meta lines
@@ -245,7 +283,8 @@ class magicdiff
         }
     }
 
-    public static function diffAlterTable($statements) {
+    public static function diffAlterTable($statements)
+    {
         magicdiff::$data['alter_deleted'] = [];
         magicdiff::$data['alter_added'] = [];
         foreach(magicdiff::$data['diff_deleted'] as $diff_deleted__key=>$diff_deleted__value) {
@@ -254,14 +293,17 @@ class magicdiff
                 $diff_deleted__value['type'] == 'create' &&
                 $diff_added__value['type'] == 'create' &&
                 $diff_deleted__value['table'] == $diff_added__value['table']
-            ) {
+            )
+            {
 
                 // find all columns that have been deleted
-                while(1==1) {
+                while(1==1)
+                {
                     $finish = true;
                     foreach(magicdiff::getAlteredColumns($diff_deleted__value['table'], $diff_deleted__value['columns'], 'columns') as $diff_deleted_columns__key=>$diff_deleted_columns__value) {
                         $exists = false;
-                        foreach($diff_added__value['columns'] as $diff_added_columns__key=>$diff_added_columns__value) {
+                        foreach($diff_added__value['columns'] as $diff_added_columns__key=>$diff_added_columns__value)
+                        {
                             if(
                                 $diff_deleted_columns__value['name'] == $diff_added_columns__value['name'] &&
                                 $diff_deleted_columns__value['args'] == $diff_added_columns__value['args']
@@ -269,7 +311,8 @@ class magicdiff
                                 $exists = true;
                             }
                         }
-                        if($exists === false) {
+                        if($exists === false)
+                        {
                             $statements[] = [
                                 'type' => 'alter',
                                 'table' => $diff_added__value['table'],
@@ -285,9 +328,11 @@ class magicdiff
                 }
 
                 // find all columns that have been added
-                while(1==1) {
+                while(1==1)
+                {
                     $finish = true;
-                    foreach($diff_added__value['columns'] as $diff_added_columns__key=>$diff_added_columns__value) {
+                    foreach($diff_added__value['columns'] as $diff_added_columns__key=>$diff_added_columns__value)
+                    {
                         $exists = false;
                         foreach(magicdiff::getAlteredColumns($diff_deleted__value['table'],$diff_deleted__value['columns'],'columns') as $diff_deleted_columns__key=>$diff_deleted_columns__value) {
                             if(
@@ -312,7 +357,8 @@ class magicdiff
                 }
 
                 // finally reorder all columns
-                while(1==1) {
+                while(1==1)
+                {
                     $finish = true;
                     $diff_deleted__value_columns = magicdiff::getAlteredColumns($diff_deleted__value['table'],$diff_deleted__value['columns'],'columns');
                     foreach($diff_deleted__value_columns as $diff_deleted_columns__key=>$diff_deleted_columns__value) {
@@ -321,7 +367,8 @@ class magicdiff
                             $diff_deleted_columns__key != $diff_added_columns__key &&
                             $diff_deleted_columns__value['name'] == $diff_added_columns__value['name'] &&
                             $diff_deleted_columns__value['args'] == $diff_added_columns__value['args']
-                        ) {
+                        )
+                        {
                             $statements[] = [
                                 'type' => 'alter',
                                 'table' => $diff_added__value['table'],
@@ -345,9 +392,11 @@ class magicdiff
         return $statements;
     }
 
-    public static function diffDropTable($statements) {
+    public static function diffDropTable($statements)
+    {
         magicdiff::$data['tables_deleted'] = [];
-        foreach(magicdiff::$data['diff_deleted'] as $diff_deleted__key=>$diff_deleted__value) {
+        foreach(magicdiff::$data['diff_deleted'] as $diff_deleted__key=>$diff_deleted__value)
+        {
             if(
                 $diff_deleted__value['type'] == 'create' &&
                 !in_array($diff_deleted__key, magicdiff::$data['alter_deleted'])
@@ -362,19 +411,23 @@ class magicdiff
         return $statements;
     }
 
-    public static function diffCreateTable($statements) {
-        foreach(magicdiff::$data['diff_added'] as $diff_added__key=>$diff_added__value) {
+    public static function diffCreateTable($statements)
+    {
+        foreach(magicdiff::$data['diff_added'] as $diff_added__key=>$diff_added__value)
+        {
             if(
                 $diff_added__value['type'] == 'create' &&
                 !in_array($diff_added__key, magicdiff::$data['alter_added'])
-            ) {
+            )
+            {
                 $statements_this = [
                     'type' => 'create',
                     'table' => $diff_added__value['table'],
                     'columns' => $diff_added__value['columns'],
                     'meta' => $diff_added__value['meta'],
                 ];
-                if( isset($diff_added__value['primary_key']) && !empty($diff_added__value['primary_key']) ) {
+                if( isset($diff_added__value['primary_key']) && !empty($diff_added__value['primary_key']) )
+                {
                     $statements_this['primary_key'] = $diff_added__value['primary_key'];
                 }
                 $statements[] = $statements_this;                
@@ -383,7 +436,8 @@ class magicdiff
         return $statements;
     }
 
-    public static function diffUpdateTable($statements) {
+    public static function diffUpdateTable($statements)
+    {
         magicdiff::$data['update_deleted'] = [];
         magicdiff::$data['update_added'] = [];
         foreach(magicdiff::$data['diff_deleted'] as $diff_deleted__key=>$diff_deleted__value) {
@@ -409,13 +463,16 @@ class magicdiff
         return $statements;
     }
 
-    public static function diffDeleteTable($statements) {
-        foreach(magicdiff::$data['diff_deleted'] as $diff_deleted__key=>$diff_deleted__value) {
+    public static function diffDeleteTable($statements)
+    {
+        foreach(magicdiff::$data['diff_deleted'] as $diff_deleted__key=>$diff_deleted__value)
+        {
             if(
                 $diff_deleted__value['type'] == 'insert' &&
                 !in_array($diff_deleted__key, magicdiff::$data['update_deleted']) &&
                 !in_array($diff_deleted__value['table'], magicdiff::$data['tables_deleted'])
-            ) {
+            )
+            {
                 $statements[] = [
                     'type' => 'delete',
                     'table' => $diff_deleted__value['table'],
@@ -426,12 +483,15 @@ class magicdiff
         return $statements;
     }
 
-    public static function diffInsertTable($statements) {
-        foreach(magicdiff::$data['diff_added'] as $diff_added__key=>$diff_added__value) {
+    public static function diffInsertTable($statements)
+    {
+        foreach(magicdiff::$data['diff_added'] as $diff_added__key=>$diff_added__value)
+        {
             if(
                 $diff_added__value['type'] == 'insert' &&
                 !in_array($diff_added__key, magicdiff::$data['update_added'])
-            ) {
+            )
+            {
                 $statements[] = [
                     'type' => 'insert',
                     'table' => $diff_added__value['table'],
@@ -442,9 +502,11 @@ class magicdiff
         return $statements;
     }
 
-    public static function diffCreateFinalStatements($statements) {
+    public static function diffCreateFinalStatements($statements)
+    {
         $diff = ['schema' => '', 'data' => '', 'all' => ''];
-        foreach($statements as $statements__value) {
+        foreach($statements as $statements__value)
+        {
             $parsed_line = magicdiff::reparseLine($statements__value);
             if( in_array($statements__value['type'],['create','alter','drop']) ) {
                 $diff['schema'] .= $parsed_line."\n";
@@ -457,24 +519,28 @@ class magicdiff
         return $diff;
     }
 
-    public static function getAlteredColumns($table, $data, $type) {
+    public static function getAlteredColumns($table, $data, $type)
+    {
         if(empty(magicdiff::$data['altered_columns'])) { return $data; }
         foreach(magicdiff::$data['altered_columns'] as $altered_columns__value) {
             if($altered_columns__value[0] != $table) { continue; }
 
-            if($altered_columns__value[1] == 'move') {
+            if($altered_columns__value[1] == 'move')
+            {
                 $move_from = $altered_columns__value[2];
                 $move_to = $altered_columns__value[3];
                 //echo 'moving from '.$move_from.' to '.$move_to.''.PHP_EOL;
                 array_splice($data, $move_to, 0, array_splice($data, $move_from, 1));
             }
-            if($altered_columns__value[1] == 'delete') {
+            if($altered_columns__value[1] == 'delete')
+            {
                 $delete_index = $altered_columns__value[2];
                 //echo 'deleting '.$delete_index.''.PHP_EOL;
                 unset($data[$delete_index]);
                 $data = array_values($data);
             }
-            if($altered_columns__value[1] == 'insert') {
+            if($altered_columns__value[1] == 'insert')
+            {
                 if($type == 'columns') {
                     $data[] = [
                         'name' => $altered_columns__value[2],
@@ -492,23 +558,28 @@ class magicdiff
         return $data;
     }
 
-    public static function parseLine($line) {
+    public static function parseLine($line)
+    {
         $line = trim($line);
-        if(strpos($line,'INSERT INTO') === 0) {
+        if(strpos($line,'INSERT INTO') === 0)
+        {
             return magicdiff::parseLineInsert($line);
         }
-        if(strpos($line,'CREATE TABLE') === 0) { 
+        if(strpos($line,'CREATE TABLE') === 0)
+        { 
             return magicdiff::parseLineCreate($line);
         }
         return null;
     }
 
-    public static function parseLineInsert($line) {
+    public static function parseLineInsert($line)
+    {
         $data = ['type' => '', 'table' => '', 'values' => []];
         $data['type'] = 'insert';
         $pointer = -1;
         $context = 'statement';
-        while(++$pointer < strlen($line) ) {
+        while(++$pointer < strlen($line) )
+        {
             $char_cur = substr($line,$pointer,1);
             $char_prev = substr($line,$pointer-1,1);
             $char_next = substr($line,$pointer+1,1);
@@ -538,7 +609,8 @@ class magicdiff
                 ['value_open',      '*',        'value'],                
             ];
 
-            foreach($map as $map__value) {
+            foreach($map as $map__value)
+            {
                 if( $map__value[0] != $context ) { continue; }
                 if( $map__value[1] == '*' ) { $context = $map__value[2]; break; }
                 if( $map__value[1] == 'notempty' && $char_cur != ' ' ) { $context = $map__value[2]; break; }
@@ -563,12 +635,14 @@ class magicdiff
         return $data;   
     }
 
-    public static function parseLineCreate($line) {
+    public static function parseLineCreate($line)
+    {
         $data = ['type' => '', 'table' => '', 'columns' => [], 'primary_key' => '', 'keys' => [], 'meta' => ''];
         $data['type'] = 'create';
         $pointer = -1;
         $context = 'statement';
-        while(++$pointer < strlen($line) ) {
+        while(++$pointer < strlen($line) )
+        {
             $char_cur = substr($line,$pointer,1);
             $char_prev = substr($line,$pointer-1,1);
             $char_next = substr($line,$pointer+1,1);
@@ -622,7 +696,8 @@ class magicdiff
                 ['meta',                    ';',            'statement']
             ];
 
-            foreach($map as $map__value) {
+            foreach($map as $map__value)
+            {
                 if( $map__value[0] != $context ) { continue; }
                 if( $map__value[1] == '*' ) { $context = $map__value[2]; break; }
                 if( $map__value[1] == 'notempty' && $char_cur != ' ' ) { $context = $map__value[2]; break; }
@@ -667,29 +742,37 @@ class magicdiff
         return $data;   
     }
 
-    public static function reparseLine($data) {
-        if($data['type'] == 'alter') {
+    public static function reparseLine($data)
+    {
+        if($data['type'] == 'alter')
+        {
             return magicdiff::reparseLineAlter($data);
         }
-        if($data['type'] == 'insert') {
+        if($data['type'] == 'insert')
+        {
             return magicdiff::reparseLineInsert($data);
         }
-        if($data['type'] == 'delete') {
+        if($data['type'] == 'delete')
+        {
             return magicdiff::reparseLineDelete($data);
         }
-        if($data['type'] == 'update') {
+        if($data['type'] == 'update')
+        {
             return magicdiff::reparseLineUpdate($data);
         }
-        if($data['type'] == 'drop') {
+        if($data['type'] == 'drop')
+        {
             return magicdiff::reparseLineDrop($data);
         }
-        if($data['type'] == 'create') {
+        if($data['type'] == 'create')
+        {
             return magicdiff::reparseLineCreate($data);
         }
         return null;
     }
 
-    public static function reparseLineAlter($data) {
+    public static function reparseLineAlter($data)
+    {
         $line = '';
         $line .= 'ALTER TABLE ';
         $line .= $data['table'].' ';
@@ -698,7 +781,8 @@ class magicdiff
         return $line;
     }
 
-    public static function reparseLineInsert($data) {
+    public static function reparseLineInsert($data)
+    {
         $line = '';
         $line .= 'INSERT INTO ';
         $line .= '`'.$data['table'].'` ';
@@ -708,13 +792,15 @@ class magicdiff
         return $line;
     }
 
-    public static function reparseLineDelete($data) {
+    public static function reparseLineDelete($data)
+    {
         $line = '';
         $line .= 'DELETE FROM ';
         $line .= '`'.$data['table'].'` ';
         $line .= 'WHERE ';
         $line_where = [];
-        foreach($data['where'] as $data_where__key=>$data_where__value) {
+        foreach($data['where'] as $data_where__key=>$data_where__value)
+        {
             // don't include columns with unknown default values
             if( $data_where__value == '_DEFAULT_UNKNOWN_VALUE' ) { continue; }
             $line_where[] = magicdiff::getColumnNames($data['table'])[$data_where__key].' = '.$data_where__value;
@@ -724,13 +810,15 @@ class magicdiff
         return $line;
     }
     
-    public static function reparseLineUpdate($data) {
+    public static function reparseLineUpdate($data)
+    {
         $line = '';
         $line .= 'UPDATE ';
         $line .= '`'.$data['table'].'` ';
         $line .= 'SET ';
         $line_values = [];
-        foreach($data['values'] as $data_values__key=>$data_values__value) {
+        foreach($data['values'] as $data_values__key=>$data_values__value)
+        {
             // don't include obsolete ones
             if( $data['where'][$data_values__key] == $data_values__value ) { continue; }
             $line_values[] = magicdiff::getColumnNames($data['table'])[$data_values__key].' = '.$data_values__value;
@@ -739,7 +827,8 @@ class magicdiff
         $line .= ' ';
         $line .= 'WHERE ';
         $line_where = [];
-        foreach($data['where'] as $data_where__key=>$data_where__value) {
+        foreach($data['where'] as $data_where__key=>$data_where__value)
+        {
             // don't include columns with unknown default values
             if( $data_where__value == '_DEFAULT_UNKNOWN_VALUE' ) { continue; }
             $line_where[] = magicdiff::getColumnNames($data['table'])[$data_where__key].' = '.$data_where__value;
@@ -749,7 +838,8 @@ class magicdiff
         return $line;
     }
 
-    public static function reparseLineDrop($data) {
+    public static function reparseLineDrop($data)
+    {
         $line = '';
         $line .= 'DROP TABLE IF EXISTS ';
         $line .= $data['table'];
@@ -757,13 +847,15 @@ class magicdiff
         return $line;
     }
 
-    public static function reparseLineCreate($data) {
+    public static function reparseLineCreate($data)
+    {
         $line = '';
         $line .= 'CREATE TABLE ';
         $line .= $data['table'];
         $line .= '( ';
         $line_columns = [];
-        foreach($data['columns'] as $data_columns__value) {
+        foreach($data['columns'] as $data_columns__value)
+        {
             $line_columns[] = '`'.$data_columns__value['name'].'` '.$data_columns__value['args'];
         }
         if( isset($data['primary_key']) && !empty($data['primary_key']) ) {
@@ -776,7 +868,8 @@ class magicdiff
         return $line;
     }
 
-    public static function getColumnNames($table) {
+    public static function getColumnNames($table)
+    {
         if(empty(magicdiff::$data['column_information'])) { return []; }
         if(empty(magicdiff::$data['column_information'][$table])) { return []; }
         $columns = [];
@@ -786,7 +879,8 @@ class magicdiff
         return $columns;
     }
 
-    public static function getTablePrimaryKey($table) {
+    public static function getTablePrimaryKey($table)
+    {
         if(empty(magicdiff::$data['column_information'])) { return null; }
         if(empty(magicdiff::$data['column_information'][$table])) { return null; }
         if(empty(magicdiff::$data['column_information'][$table]['columns'])) { return null; }
@@ -802,7 +896,8 @@ class magicdiff
 
     /* helpers */
 
-    public static function path() {
+    public static function path()
+    {
         $path = getcwd();
         if( strpos($path,'\src') !== false ) { $path = str_replace('\src','',$path); }
         // if kiwi config is available, chose this configuration instead
@@ -815,27 +910,32 @@ class magicdiff
         return $path;
 	}
 
-    public static function output($message) {
+    public static function output($message)
+    {
         echo $message;
         echo PHP_EOL;
     }
 
-    public static function outputAndStop($message) {
+    public static function outputAndStop($message)
+    {
         magicdiff::output($message);
         die();
     }
 
-	public static function conf($path) {
+	public static function conf($path)
+    {
 		$config = magicdiff::getConfig();
         $keys = explode('.', $path);
-        foreach($keys as $key) {
+        foreach($keys as $key)
+        {
 	        if(isset($config[$key])) { $config = $config[$key]; }
 	        else { return null; }
         }
         return $config;       
 	}
 
-    public static function getConfig() {
+    public static function getConfig()
+    {
         if( file_exists(magicdiff::path().'/config.json') ) {
             $config = file_get_contents(magicdiff::path().'/config.json');
         }
@@ -849,7 +949,8 @@ class magicdiff
         return $config;
     }
 
-    public static function sql() {
+    public static function sql()
+    {
         return new PDO('mysql:host=' . magicdiff::conf('database.host') . ';port=' . magicdiff::conf('database.port') . ';dbname=' . magicdiff::conf('database.database'), magicdiff::conf('database.username'), magicdiff::conf('database.password'), array(
             PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8',
             PDO::ATTR_EMULATE_PREPARES => false,
@@ -857,12 +958,16 @@ class magicdiff
         ));
     }
 
-	public static function command($command, $verbose = false) {
-		if( $verbose === false ) {
-			if( strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ) {
+	public static function command($command, $verbose = false)
+    {
+		if( $verbose === false )
+        {
+			if( strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' )
+            {
 				$command .= ' 2> nul';
 			}
-			else {
+			else
+            {
 				$command .= ' 2>/dev/null';
 			}
 		}
@@ -870,16 +975,19 @@ class magicdiff
 		return $return;
 	}
 
-    public static function reset() {
+    public static function reset()
+    {
         array_map('unlink', glob(magicdiff::path().'/*'));
         rmdir(magicdiff::path());
     }
 
-    public static function lb($message = '') {
+    public static function lb($message = '')
+    {
         if(!isset($GLOBALS['performance'])) { $GLOBALS['performance'] = []; }
         $GLOBALS['performance'][] = ['time' => microtime(true), 'message' => $message];
     }
-    public static function le() {
+    public static function le()
+    {
         echo 'script '.$GLOBALS['performance'][count($GLOBALS['performance'])-1]['message'].' execution time: '.number_format((microtime(true)-$GLOBALS['performance'][count($GLOBALS['performance'])-1]['time']),5). ' seconds'.PHP_EOL;
         unset($GLOBALS['performance'][count($GLOBALS['performance'])-1]);
         $GLOBALS['performance'] = array_values($GLOBALS['performance']);
@@ -889,20 +997,29 @@ class magicdiff
 
 
 // cli usage
-if (php_sapi_name() == 'cli' && isset($argv) && !empty($argv) && isset($argv[1])) {
-	if(!isset($argv) || empty($argv) || !isset($argv[1]) || !in_array($argv[1],['setup','init','diff'])) {
+if (php_sapi_name() == 'cli' && isset($argv) && !empty($argv) && isset($argv[1]))
+{
+	if(!isset($argv) || empty($argv) || !isset($argv[1]) || !in_array($argv[1],['setup','init','diff']))
+    {
         magicdiff::outputAndStop('missing options');
     }
-	if( $argv[1] == 'setup' ) {
+	if( $argv[1] == 'setup' )
+    {
 		magicdiff::setup();
 	}
-	if( $argv[1] == 'init' ) {
+	if( $argv[1] == 'init' )
+    {
 		magicdiff::init();
 	}
-	if( $argv[1] == 'diff' ) {
+	if( $argv[1] == 'diff' )
+    {
 		$diff = magicdiff::diff();
-		if( empty($diff) ) { magicdiff::outputAndStop('no differences'); }
-		foreach($diff as $diff__value) {
+		if( empty($diff) )
+        {
+            magicdiff::outputAndStop('no differences');
+        }
+		foreach($diff as $diff__value)
+        {
 			print_r($diff__value['diff']['all']);
 		}
 	}

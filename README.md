@@ -4,17 +4,17 @@ magicdiff generates automagically sql diffs for a database between two given sta
 
 ## Key benefits
 
-* spits out real sql queries that can be applied on previous state
-* does not use sql triggers or binary / ddl logs
-* works with any shared hosting provider
-* data and schema changes, at the same time
-* blazingly fast
-* command line tool and class usage possible
-* covered through test suite
-* returns (separate) diffs and patch files
-* can ignore certain tables 
-* takes care of (primary) keys and all kinds or altering tables
-* zero dependencies
+* Spits out real sql queries that can be applied on previous state
+* Does not use sql triggers or binary / ddl logs
+* Works with any shared hosting provider
+* Data and schema changes, at the same time
+* Fast
+* Command line tool and class usage possible
+* Covered through test suite
+* Returns (separate) diffs and patch files
+* Can ignore certain tables 
+* Takes care of (primary) keys and all kinds or altering tables
+* Zero dependencies
 
 ## Disclaimer
 
